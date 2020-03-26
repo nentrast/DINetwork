@@ -37,12 +37,12 @@ public protocol NetworkRouter: class {
 }
 
 
-public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSessionDelegate, URLSessionDataDelegate {
-
+public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSessionDelegate, URLSessionDataDelegate, URLSessionDownloadDelegate {
+    
     private var task: URLSessionTask?
     
-    private var progress: ((Progress) -> Void)?
-    
+    private var progress: [URL : ((Progress) -> Void)?] = [:]
+    private var downloadFinifhed: [URL : ((URL) -> Void)?] = [:]
     private var uploadTask: URLSessionDataTask?
 
     lazy var uploadSession: URLSession = {
@@ -113,7 +113,7 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
             }
         })
         
-        self.progress = { value in
+        self.progress[request!.url!] = { value in
             progressHandler?(value)
         }
         
@@ -122,6 +122,19 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
     
     public func cancel() {
         task?.cancel()
+    }
+    
+    public func download(url: URL, progress: ((Progress) -> Void)?, comletion: @escaping (Result<URL, NetworkError>) -> Void) -> URLSessionDownloadTask {
+        let task = uploadSession.downloadTask(with: url)
+        self.progress[url] = {value in
+            progress?(value)
+        }
+        task.resume()
+        
+        self.downloadFinifhed[url] = { url in
+            comletion(.success(url))
+        }
+        return task
     }
     
     // MARK: Private
@@ -178,6 +191,29 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
         }
     }
     
+    // MARK: URLSessionDowloadDelegate
+    
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        if let url = downloadTask.originalRequest?.url, let downloadFinished = downloadFinifhed[url]{
+            downloadFinished?(location)
+            progress[url] = nil
+            downloadFinifhed[url] = nil
+        }
+    }
+    
+    public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        let value: Float = Float(totalBytesWritten) / Float(totalBytesExpectedToWrite)
+        let model = Progress(totalSize: totalBytesExpectedToWrite,
+                             bytesRecived: bytesWritten,
+                             bytesExpexted: totalBytesWritten,
+                             percentDone: value)
+        guard let url = downloadTask.originalRequest?.url, let progress = progress[url] else {
+            return
+        }
+        
+        progress?(model)
+    }
+    
     // MARK: URLSessionTaskDelegate
     
     public func urlSession(_ session: URLSession,
@@ -190,14 +226,22 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
                              bytesRecived: totalBytesSent,
                              bytesExpexted: totalBytesExpectedToSend,
                              percentDone: value)
-        self.progress?(model)
+        guard let url = task.originalRequest?.url, let progress = progress[url] else {
+            return
+        }
+        
+        progress?(model)
     }
     
     
     public func urlSession(_ session: URLSession,
                            task: URLSessionTask,
                            didCompleteWithError error: Error?) {
-        progress = nil
+        guard let url = task.originalRequest?.url else {
+            return
+        }
+
+        progress[url] = nil
     }
 }
 

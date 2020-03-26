@@ -9,13 +9,13 @@
 import Foundation
 
 public struct Progress {
-    let totalSize: Int64
-    let bytesRecived: Int64
-    let bytesExpexted: Int64
+    public let totalSize: Int64
+    public let bytesRecived: Int64
+    public let bytesExpexted: Int64
     
-    let percentDone: Float
+    public let percentDone: Float
     
-    var size: String {
+    public var size: String {
         return ByteCountFormatter.string(fromByteCount: totalSize,
                                          countStyle: .file)
     }
