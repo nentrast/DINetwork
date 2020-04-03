@@ -1,5 +1,5 @@
 //
-//  EndPointType.swift
+//  DIEndpointType.swift
 //  DINetwork
 //
 //  Created by Alexandr Lobanov on 19.03.2020.
@@ -29,7 +29,7 @@ public enum HTTPTask {
     case requestParametersAndHeaders(bodyParametrs: Parameters?, urlParametrs: Parameters?, additionalHeaders: HTTPHeaders?)
 }
 
-public protocol EndpointType: URLRequestConvertible {
+public protocol DIEndpointType: URLRequestConvertible {
     var baseURL: URL  { get }
     var path: String { get }
     var method: HTTPMethod { get }
@@ -37,7 +37,7 @@ public protocol EndpointType: URLRequestConvertible {
     var headers: HTTPHeaders { get }
 }
 
-public extension EndpointType {
+public extension DIEndpointType {
     func asURLRequest() throws -> URLRequest {
         var urlRequest = URLRequest(url: baseURL.appendingPathComponent(path),
         cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,

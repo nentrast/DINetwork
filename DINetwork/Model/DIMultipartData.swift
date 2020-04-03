@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum MimeType {
+public enum DIMimeType {
     case imagePNG
     case imageJPEG
     
@@ -31,12 +31,12 @@ public enum MimeType {
     }
 }
 
-public struct MultipartData {
+public struct DIMultipartData {
     let fileName: String
-    let type: MimeType
+    let type: DIMimeType
     let data: Data
     
-    public init(fileName: String? = nil, type: MimeType, data: Data) {
+    public init(fileName: String? = nil, type: DIMimeType, data: Data) {
         let name = fileName == nil ? "\(Date().timeIntervalSince1970)" : (fileName ?? "File")
         self.fileName = "\(name).\(type.extension)"
         self.type = type

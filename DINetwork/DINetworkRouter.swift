@@ -8,12 +8,12 @@
 
 import Foundation
 
-public typealias NetworkRouterCompletion = (_ data: Data?,_ response: URLResponse?,_ error: Error?)->()
-public typealias NetworkResult<T> = ((Result<T?, NetworkError>) -> Void)
+public typealias DINetworkRouterCompletion = (_ data: Data?,_ response: URLResponse?,_ error: Error?)->()
+public typealias DINetworkResult<T> = ((Result<T?, DINetworkError>) -> Void)
 public typealias Key = String
 
 
-public enum NetworkResponseError: Error {
+public enum DINetworkResponseError: Error {
     case noData
     case authorizationError
     case badRequest
@@ -21,27 +21,27 @@ public enum NetworkResponseError: Error {
     case failed
 }
 
-public protocol NetworkRouter: class {
-    associatedtype Endpoint: EndpointType
+public protocol DINetworkRouter: class {
+    associatedtype Endpoint: DIEndpointType
     func request(_ route: Endpoint,
-                 completion: @escaping NetworkRouterCompletion)
+                 completion: @escaping DINetworkRouterCompletion)
     func request<T: Codable>(_ route: Endpoint,
                              objectType: T.Type,
-                             completion: @escaping NetworkResult<T>)
-    func multipartUpload<T: Codable>(data: [Key: MultipartData],
+                             completion: @escaping DINetworkResult<T>)
+    func multipartUpload<T: Codable>(data: [Key: DIMultipartData],
                                      route: Endpoint,
                                      objectType: T.Type,
-                                     completion: @escaping NetworkResult<T>,
-                                     progressHandler: ((Progress) -> Void)?)
+                                     completion: @escaping DINetworkResult<T>,
+                                     progressHandler: ((DIProgress) -> Void)?)
     func cancel()
 }
 
 
-public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSessionDelegate, URLSessionDataDelegate, URLSessionDownloadDelegate {
+public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLSessionDelegate, URLSessionDataDelegate, URLSessionDownloadDelegate {
     
     private var task: URLSessionTask?
     
-    private var progress: [URL : ((Progress) -> Void)?] = [:]
+    private var progress: [URL : ((DIProgress) -> Void)?] = [:]
     private var downloadFinifhed: [URL : ((URL) -> Void)?] = [:]
     private var uploadTask: URLSessionDataTask?
 
@@ -50,9 +50,13 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
         return session
     }()
+    
+//    init(cache: DICache<URL, Data>) {
+//        
+//    }
         
     public func request(_ route: Endpoint,
-                        completion: @escaping NetworkRouterCompletion) {
+                        completion: @escaping DINetworkRouterCompletion) {
         let session = URLSession.shared
         do {
             let request = try route.asURLRequest()
@@ -67,7 +71,7 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
     
     public func request<T: Codable>(_ route: Endpoint,
                                     objectType: T.Type,
-                                    completion: @escaping ((Result<T?, NetworkError>) -> Void)) {
+                                    completion: @escaping ((Result<T?, DINetworkError>) -> Void)) {
         request(route) { (data, response, error) in
             
             if let response = response as? HTTPURLResponse {
@@ -78,11 +82,11 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
         }
     }
     
-    public func multipartUpload<T: Codable>(data: [Key: MultipartData],
+    public func multipartUpload<T: Codable>(data: [Key: DIMultipartData],
                                             route: Endpoint,
                                             objectType: T.Type,
-                                            completion: @escaping ((Result<T?, NetworkError>) -> Void),
-                                            progressHandler: ((Progress) -> Void)?) {
+                                            completion: @escaping ((Result<T?, DINetworkError>) -> Void),
+                                            progressHandler: ((DIProgress) -> Void)?) {
         var request = try? route.asURLRequest()
         
         let boundary = "Boundary-\(UUID().uuidString)"
@@ -123,9 +127,17 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
     public func cancel() {
         task?.cancel()
     }
-    
-    public func download(url: URL, progress: ((Progress) -> Void)?, comletion: @escaping (Result<URL, NetworkError>) -> Void) -> URLSessionDownloadTask {
-        let task = uploadSession.downloadTask(with: url)
+        
+    public func download(url: URL, resumedData: Data? = nil ,progress: ((DIProgress) -> Void)?, comletion: @escaping (Result<URL, DINetworkError>) -> Void) -> URLSessionDownloadTask {
+        var task:  URLSessionDownloadTask!
+        
+        if let data = resumedData {
+            task = uploadSession.downloadTask(withResumeData: data)
+            
+        } else {
+            task  = uploadSession.downloadTask(with: url)
+        }
+        
         self.progress[url] = {value in
             progress?(value)
         }
@@ -158,13 +170,13 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
     fileprivate func handleResponse<T: Codable>(_ response: HTTPURLResponse,
                                                 data: Data?,
                                                 objectType: T.Type,
-                                                completion: ((Result<T?, NetworkError>) -> Void) ) {
+                                                completion: ((Result<T?, DINetworkError>) -> Void) ) {
         let result = handleResponseStatus(response, data: data)
         switch result {
         case .success(let data):
             if let data = data {
                 do {
-                    let object = try JSONObjectDecoder.decode(type: objectType, data: data)
+                    let object = try DIJSONObjectDecoder.decode(type: objectType, data: data)
                     completion(.success(object))
                 } catch {
                     completion(.failure(.decodigFailed))
@@ -173,21 +185,21 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
                 completion(.success(nil))
             }
         case .failure(let error):
-            completion(.failure(NetworkError.response(error)))
+            completion(.failure(DINetworkError.response(error)))
         }
     }
     
     fileprivate func handleResponseStatus(_ response: HTTPURLResponse,
-                                          data: Data?) -> Result<Data?, NetworkResponseError> {
+                                          data: Data?) -> Result<Data?, DINetworkResponseError> {
         switch response.statusCode {
         case 200...299:
             return .success(data)
         case 401...500:
-            return .failure(NetworkResponseError.authorizationError)
+            return .failure(DINetworkResponseError.authorizationError)
         case 501...500:
-            return .failure(NetworkResponseError.badRequest)
+            return .failure(DINetworkResponseError.badRequest)
         default:
-            return .failure(NetworkResponseError.failed)
+            return .failure(DINetworkResponseError.failed)
         }
     }
     
@@ -203,11 +215,21 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
     
     public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         let value: Float = Float(totalBytesWritten) / Float(totalBytesExpectedToWrite)
-        let model = Progress(totalSize: totalBytesExpectedToWrite,
+        let model = DIProgress(totalSize: totalBytesExpectedToWrite,
                              bytesRecived: bytesWritten,
                              bytesExpexted: totalBytesWritten,
                              percentDone: value)
-        guard let url = downloadTask.originalRequest?.url, let progress = progress[url] else {
+        
+        guard let url = downloadTask.originalRequest?.url else {
+            return
+        }
+        
+        if downloadTask.state == .canceling {
+            progress.removeValue(forKey: url)
+            return
+        }
+        
+        guard let progress = progress[url] else {
             return
         }
         
@@ -222,7 +244,7 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
                            totalBytesSent: Int64,
                            totalBytesExpectedToSend: Int64) {
         let value: Float = Float(totalBytesSent) / Float(totalBytesExpectedToSend)
-        let model = Progress(totalSize: totalBytesSent,
+        let model = DIProgress(totalSize: totalBytesSent,
                              bytesRecived: totalBytesSent,
                              bytesExpexted: totalBytesExpectedToSend,
                              percentDone: value)
@@ -240,8 +262,9 @@ public class Router<Endpoint: EndpointType>: NSObject, NetworkRouter, URLSession
         guard let url = task.originalRequest?.url else {
             return
         }
+        weak var weakSeld = self
 
-        progress[url] = nil
+        weakSeld?.progress.removeValue(forKey: url)
     }
 }
 

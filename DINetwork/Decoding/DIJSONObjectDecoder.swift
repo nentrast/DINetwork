@@ -1,5 +1,5 @@
 //
-//  ObjectDecoder.swift
+//  DIJSONObjectDecoder.swift
 //  DINetwork
 //
 //  Created by Alexandr Lobanov on 19.03.2020.
@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class JSONObjectDecoder {
+public class DIJSONObjectDecoder {
     static func decode<DataType>(type: DataType.Type, data: Data, keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .convertFromSnakeCase) throws -> DataType where DataType: Decodable {
         do {
             let decoder = JSONDecoder()
@@ -16,7 +16,7 @@ public class JSONObjectDecoder {
             let object = try decoder.decode(type, from: data)
             return object
         } catch {
-            throw NetworkError.decodigFailed
+            throw DINetworkError.decodigFailed
         }
     }
 }

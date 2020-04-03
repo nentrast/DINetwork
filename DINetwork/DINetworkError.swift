@@ -8,12 +8,12 @@
 
 import Foundation
 
-public enum NetworkError: Error {
+public enum DINetworkError: Error {
     case parametrsNil
     case encodingFailed
     case missingURL
     case decodigFailed
-    case response(NetworkResponseError)
+    case response(DINetworkResponseError)
     
     var description: String {
         switch self {

@@ -1,5 +1,5 @@
 //
-//  ObjectEncoder.swift
+//  DIObjectEncoder.swift
 //  DINetwork
 //
 //  Created by Alexandr Lobanov on 22.03.2020.
@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class ObjectEncoder {
+public class DIObjectEncoder {
     // TODO: somehow handle catch result here
     public static func encode<T: Encodable>(object: T, keyEncoding: JSONEncoder.KeyEncodingStrategy = .convertToSnakeCase) -> [String: Any]? {
         let encoder = JSONEncoder()

@@ -8,7 +8,7 @@
 
 import Foundation
 
-public struct Progress {
+public struct DIProgress {
     public let totalSize: Int64
     public let bytesRecived: Int64
     public let bytesExpexted: Int64
