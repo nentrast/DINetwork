@@ -13,16 +13,27 @@ public typealias DINetworkResult<T> = ((Result<T?, DINetworkError>) -> Void)
 public typealias Key = String
 
 
+public struct DIError: Error, Codable {
+    let error: String?
+    let type: String?
+    
+    public var localizedDescription: String {
+        return error ?? "Error withou description"
+    }
+}
+
+
 public enum DINetworkResponseError: Error {
     case noData
     case authorizationError
     case badRequest
     case outdate
-    case failed
+    case failed(data: DIError?)
 }
 
 public protocol DINetworkRouter: class {
     associatedtype Endpoint: DIEndpointType
+    
     func request(_ route: Endpoint,
                  completion: @escaping DINetworkRouterCompletion)
     func request<T: Codable>(_ route: Endpoint,
@@ -44,28 +55,68 @@ public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLS
     private var progress: [URL : ((DIProgress) -> Void)?] = [:]
     private var downloadFinifhed: [URL : ((URL) -> Void)?] = [:]
     private var uploadTask: URLSessionDataTask?
-
+    
+    public var requestAdapter: DIRequestAdapterProtocol?
+    public var requestRetrier: DIRequestRerierProtocol?
+    
     lazy var uploadSession: URLSession = {
         let configuration = URLSessionConfiguration.default
         let session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
         return session
     }()
     
-//    init(cache: DICache<URL, Data>) {
-//        
-//    }
+    public func request(_ urlRequest: URLRequest, completion: @escaping DINetworkRouterCompletion) {
+        let session = URLSession.shared
         
+        do {
+            var request = urlRequest
+            
+            if let requestAdapter = requestAdapter {
+                request = try requestAdapter.adopt(urlRequest)
+            }
+            
+            task = session.dataTask(with: request) { (data, response, error) in
+                    completion(data, response, error)
+            }
+            
+            task?.resume()
+        } catch {
+            completion(nil, nil, error)
+        }
+    }
+    
     public func request(_ route: Endpoint,
                         completion: @escaping DINetworkRouterCompletion) {
         let session = URLSession.shared
+        
         do {
-            let request = try route.asURLRequest()
+            var request = try route.asURLRequest()
+            
+            if let requestAdapter = requestAdapter {
+                request = try requestAdapter.adopt(request)
+            }
+                        
             task = session.dataTask(with: request, completionHandler: { (data, urlResponse, error) in
-                completion(data, urlResponse, error)
+                if let retrier = self.requestRetrier {
+                    retrier.retry(session, request: request, response: urlResponse, data: data, error: error, completion: { isNeedretried, error in
+                        if let error = error {
+                            completion(nil, nil, error)
+                        } else if !isNeedretried {
+                            completion(data, urlResponse, error)
+                        } else {
+                            self.request(route) { (newData, newResponse, newError) in
+                                completion(newData, newResponse, newError)
+                            }
+                        }
+                    })
+                } else {
+                    completion(data, urlResponse, error)
+                }
             })
         } catch {
             completion(nil, nil, error)
         }
+        
         self.task?.resume()
     }
     
@@ -73,11 +124,10 @@ public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLS
                                     objectType: T.Type,
                                     completion: @escaping ((Result<T?, DINetworkError>) -> Void)) {
         request(route) { (data, response, error) in
-            
             if let response = response as? HTTPURLResponse {
                 self.handleResponse(response, data: data, objectType: objectType, completion: completion)
             } else {
-                // TODO: hanlde error
+                completion(.failure(error as? DINetworkError ?? DINetworkError.unauthorized))
             }
         }
     }
@@ -106,6 +156,14 @@ public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLS
         
         request?.httpBody = httpBody as Data
         
+        do {
+            if let requestAdapter = requestAdapter, let urlRequest = request {
+                request = try requestAdapter.adopt(urlRequest)
+            }
+        } catch {
+            completion(.failure(.encodingFailed))
+        }
+        
         uploadTask = uploadSession.dataTask(with: request!, completionHandler: {[weak self] (data, response, error) in
             if let response = response as? HTTPURLResponse {
                 self?.handleResponse(response,
@@ -113,7 +171,7 @@ public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLS
                                      objectType: objectType,
                                      completion: completion)
             } else {
-                //TODO: handle
+//                completion(.failure(.response(DINetworkResponseError.noData)))
             }
         })
         
@@ -171,6 +229,7 @@ public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLS
                                                 data: Data?,
                                                 objectType: T.Type,
                                                 completion: ((Result<T?, DINetworkError>) -> Void) ) {
+
         let result = handleResponseStatus(response, data: data)
         switch result {
         case .success(let data):
@@ -194,12 +253,19 @@ public class DIRouter<Endpoint: DIEndpointType>: NSObject, DINetworkRouter, URLS
         switch response.statusCode {
         case 200...299:
             return .success(data)
+        case 400, 404:
+            if let errorData = data {
+                let objectError = try? DIJSONObjectDecoder.decode(type: DIError.self, data: errorData)
+                return .failure(.failed(data: objectError))
+            } else {
+                return .failure(.failed(data: nil))
+            }
         case 401...500:
             return .failure(DINetworkResponseError.authorizationError)
         case 501...500:
             return .failure(DINetworkResponseError.badRequest)
         default:
-            return .failure(DINetworkResponseError.failed)
+            return .failure(DINetworkResponseError.failed(data: nil))
         }
     }
     

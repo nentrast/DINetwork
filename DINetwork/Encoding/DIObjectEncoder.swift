@@ -10,7 +10,7 @@ import Foundation
 
 public class DIObjectEncoder {
     // TODO: somehow handle catch result here
-    public static func encode<T: Encodable>(object: T, keyEncoding: JSONEncoder.KeyEncodingStrategy = .convertToSnakeCase) -> [String: Any]? {
+    public static func encode<T: Encodable>(object: T, keyEncoding: JSONEncoder.KeyEncodingStrategy = .useDefaultKeys) -> [String: Any]? {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = keyEncoding
         guard let data = try? encoder.encode(object) else {

@@ -13,6 +13,7 @@ public enum DINetworkError: Error {
     case encodingFailed
     case missingURL
     case decodigFailed
+    case unauthorized
     case response(DINetworkResponseError)
     
     var description: String {
@@ -27,6 +28,8 @@ public enum DINetworkError: Error {
             return  "Failed to decode object"
         case .response(let error):
             return error.localizedDescription
+        case .unauthorized:
+            return "Unauthorized request"
         @unknown default:
             return localizedDescription
         }

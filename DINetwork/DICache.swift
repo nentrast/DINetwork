@@ -23,14 +23,8 @@ public final class DICache<Key: Hashable & Codable, Value: Codable> {
         wrapped.countLimit = maximumCount
         wrapped.delegate = keyTracker
         wrapped.name = name
-        
-        try? loadSavedCache(name: name)
     }
-    
-    deinit {
-        try? saveToDisk(withName: wrapped.name)
-    }
-    
+ 
     public func insert(_ value: Value, forKey key: Key) {
         let date = dateProvider().addingTimeInterval(entryLifetime)
         let entry = Entry.init(key, value: value, expirationDate: date)
@@ -55,6 +49,12 @@ public final class DICache<Key: Hashable & Codable, Value: Codable> {
     
     public func removeValue(forKey key: Key) {
         wrapped.removeObject(forKey: WrappedKey(key))
+    }
+    
+    static func clearCache(name: String) {
+        let fileManager = FileManager.default
+        let folder = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
+        let folderCache = folder[0].appendingPathComponent("DICache")
     }
 }
 

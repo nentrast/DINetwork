@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A83FC6E0243F4C5400BCAF0F /* DIRequestAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83FC6DF243F4C5400BCAF0F /* DIRequestAdapter.swift */; };
 		A87544AA24239EC800185E56 /* DINetworkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87544A924239EC800185E56 /* DINetworkRouter.swift */; };
 		A87544AE2423A2E800185E56 /* JSONParameterEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87544AD2423A2E800185E56 /* JSONParameterEncoder.swift */; };
 		A87544B02423AC9B00185E56 /* URLParameterEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A87544AF2423AC9B00185E56 /* URLParameterEncoder.swift */; };
@@ -33,6 +34,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A83FC6DF243F4C5400BCAF0F /* DIRequestAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIRequestAdapter.swift; sourceTree = "<group>"; };
 		A87544A924239EC800185E56 /* DINetworkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DINetworkRouter.swift; sourceTree = "<group>"; };
 		A87544AD2423A2E800185E56 /* JSONParameterEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONParameterEncoder.swift; sourceTree = "<group>"; };
 		A87544AF2423AC9B00185E56 /* URLParameterEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLParameterEncoder.swift; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 				A8B1D1B2242381B300CA5213 /* DINetwork.h */,
 				A8B1D1B3242381B300CA5213 /* Info.plist */,
 				A87544A924239EC800185E56 /* DINetworkRouter.swift */,
+				A83FC6DF243F4C5400BCAF0F /* DIRequestAdapter.swift */,
 				A8D9CB3D243378F700F2F502 /* DICache.swift */,
 				A8B1D1CB2423822C00CA5213 /* DINetworkError.swift */,
 				A87544D52427CE5B00185E56 /* Model */,
@@ -265,6 +268,7 @@
 				A87545262427D47B00185E56 /* DIObjectEncoder.swift in Sources */,
 				A87544D72427CE6D00185E56 /* DIProgress.swift in Sources */,
 				A87544B02423AC9B00185E56 /* URLParameterEncoder.swift in Sources */,
+				A83FC6E0243F4C5400BCAF0F /* DIRequestAdapter.swift in Sources */,
 				A8D9CB3E243378F700F2F502 /* DICache.swift in Sources */,
 				A87544AA24239EC800185E56 /* DINetworkRouter.swift in Sources */,
 				A87544B52423B7D800185E56 /* DIJSONObjectDecoder.swift in Sources */,
@@ -422,6 +426,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = DINetwork/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -448,6 +453,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				INFOPLIST_FILE = DINetwork/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
